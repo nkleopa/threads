@@ -1,0 +1,19 @@
+[Unit]
+Description=Threads Bot - AI Reply Generator
+After=network.target
+
+[Service]
+Type=notify
+User=root
+WorkingDirectory=/var/www/threads-bot
+ExecStart=/usr/bin/python3 -m gunicorn -w 2 -b 127.0.0.1:5000 app:app
+Restart=always
+RestartSec=10
+EnvironmentFile=/var/www/threads-bot/.env
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

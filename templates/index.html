@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор ответов Threads</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #333;
+            font-size: 28px;
+        }
+        .logout-btn {
+            background: #e0e0e0;
+            color: #333;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+        .logout-btn:hover {
+            background: #d0d0d0;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 120px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        .result-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+        .copy-btn {
+            padding: 6px 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        .copy-btn:hover {
+            background: #5568d3;
+        }
+        .copy-btn.copied {
+            background: #28a745;
+        }
+        .result-text {
+            color: #333;
+            line-height: 1.6;
+            font-size: 15px;
+            white-space: pre-wrap;
+        }
+        .error {
+            margin-top: 20px;
+            padding: 12px;
+            background: #fee;
+            color: #c33;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #667eea;
+            font-weight: 500;
+        }
+        .loading.active {
+            display: block;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top-color: #667eea;
+            animation: spin 1s linear infinite;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .usage {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>💬 Генератор ответов Threads</h1>
+            <a href="/logout" class="logout-btn">Выйти</a>
+        </div>
+
+        <form id="generateForm">
+            <div class="form-group">
+                <label for="postText">Вставьте текст поста из Threads:</label>
+                <textarea id="postText" name="post_text" placeholder="Вставьте сюда текст чужого поста..." required></textarea>
+            </div>
+            <button type="submit" class="btn-primary" id="generateBtn">
+                Сгенерировать ответ
+            </button>
+        </form>
+
+        <div class="loading" id="loading">
+            <span class="spinner"></span>
+            Генерирую ответ в стиле Никиты...
+        </div>
+
+        <div id="error" class="error" style="display: none;"></div>
+
+        <div id="result" class="result" style="display: none;">
+            <div class="result-header">
+                <span class="result-title">Готовый ответ:</span>
+                <button class="copy-btn" id="copyBtn">Копировать</button>
+            </div>
+            <div class="result-text" id="resultText"></div>
+            <div class="usage" id="usageInfo"></div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('generateForm');
+        const generateBtn = document.getElementById('generateBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+        const resultText = document.getElementById('resultText');
+        const errorDiv = document.getElementById('error');
+        const copyBtn = document.getElementById('copyBtn');
+        const usageInfo = document.getElementById('usageInfo');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const postText = document.getElementById('postText').value.trim();
+            if (!postText) return;
+
+            // Скрываем предыдущие результаты
+            result.style.display = 'none';
+            errorDiv.style.display = 'none';
+
+            // Показываем загрузку
+            loading.classList.add('active');
+            generateBtn.disabled = true;
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ post_text: postText })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Ошибка при генерации');
+                }
+
+                // Показываем результат
+                resultText.textContent = data.reply;
+                result.style.display = 'block';
+
+                // Показываем информацию о токенах
+                if (data.usage) {
+                    const u = data.usage;
+                    const cacheInfo = u.cache_read_input_tokens > 0
+                        ? ` (кэш: ${u.cache_read_input_tokens} токенов)`
+                        : '';
+                    usageInfo.textContent = `Использовано: ${u.input_tokens} входных + ${u.output_tokens} выходных токенов${cacheInfo}`;
+                }
+
+            } catch (error) {
+                errorDiv.textContent = error.message;
+                errorDiv.style.display = 'block';
+            } finally {
+                loading.classList.remove('active');
+                generateBtn.disabled = false;
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            const text = resultText.textContent;
+            try {
+                await navigator.clipboard.writeText(text);
+                copyBtn.textContent = 'Скопировано!';
+                copyBtn.classList.add('copied');
+                setTimeout(() => {
+                    copyBtn.textContent = 'Копировать';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                alert('Не удалось скопировать текст');
+            }
+        });
+    </script>
+</body>
+</html>
